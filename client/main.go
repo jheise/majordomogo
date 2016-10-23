@@ -21,24 +21,25 @@ func worker_task() {
 		panic(err)
 	}
 	defer worker.Close()
-	worker.SetIdentify(fmt.Sprintf("worker%d", time.Now().Unix()))
+	ident := fmt.Sprintf("worker%d", time.Now().Unix())
+	worker.SetIdentity(ident)
 	worker.Connect("tcp://localhost:9999")
 
 	total := 0
 	for {
 		worker.SendMultipart([][]byte{[]byte(""), []byte("HELLO")}, 0)
 
-		parts, nil := worker.RecvMultipart(0)
+		parts, _ := worker.RecvMultipart(0)
 		workload := parts[1]
 
 		if string(workload) == "FIRED" {
-			id, err := worker.Identity()
+			id, _ := worker.Identity()
 			fmt.Printf("Complete: %d tasks (%s)\n", total, id)
 			break
 		}
 		total++
 
-		time.Sleep(3)
+		time.Sleep(3 * time.Millisecond)
 	}
 }
 
@@ -74,14 +75,18 @@ func main() {
 			fmt.Println(err)
 		}
 
-		identify := parts[0]
+		identity := parts[0]
 		now := time.Now().Unix()
 		if now < endTime {
+			//fmt.Println("Keep working: " + string(identity))
 			broker.SendMultipart([][]byte{identity, []byte(""), []byte("WORK")}, 0)
 		} else {
+			fmt.Println("Firing worker: " + string(identity))
 			broker.SendMultipart([][]byte{identity, []byte(""), []byte("FIRED")}, 0)
 			fired++
+			fmt.Printf("Workers: %d Fired: %d\n", WORKER, fired)
 			if fired == WORKER {
+				fmt.Println("We're done here")
 				break
 			}
 		}
