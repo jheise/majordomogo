@@ -9,7 +9,7 @@ import (
 	"github.com/alecthomas/gozmq"
 )
 
-func worker_task() {
+func main() {
 	context, err := gozmq.NewContext()
 	if err != nil {
 		panic(err)
@@ -31,6 +31,7 @@ func worker_task() {
 
 		parts, _ := worker.RecvMultipart(0)
 		workload := parts[1]
+		fmt.Println("Workload: " + string(workload))
 
 		if string(workload) == "FIRED" {
 			id, _ := worker.Identity()
@@ -39,56 +40,6 @@ func worker_task() {
 		}
 		total++
 
-		time.Sleep(3 * time.Millisecond)
-	}
-}
-
-func main() {
-	fmt.Println("Startig Broker")
-
-	context, err := gozmq.NewContext()
-	if err != nil {
-		panic(err)
-	}
-	defer context.Close()
-
-	broker, err := context.NewSocket(gozmq.ROUTER)
-	if err != nil {
-		panic(err)
-	}
-	defer broker.Close()
-
-	broker.Bind("tcp://*:9999")
-
-	WORKER := 5
-
-	for i := 0; i < WORKER; i++ {
-		go worker_task()
-	}
-
-	endTime := time.Now().Unix() + 10
-	fired := 0
-
-	for {
-		parts, err := broker.RecvMultipart(0)
-		if err != nil {
-			fmt.Println(err)
-		}
-
-		identity := parts[0]
-		now := time.Now().Unix()
-		if now < endTime {
-			//fmt.Println("Keep working: " + string(identity))
-			broker.SendMultipart([][]byte{identity, []byte(""), []byte("WORK")}, 0)
-		} else {
-			fmt.Println("Firing worker: " + string(identity))
-			broker.SendMultipart([][]byte{identity, []byte(""), []byte("FIRED")}, 0)
-			fired++
-			fmt.Printf("Workers: %d Fired: %d\n", WORKER, fired)
-			if fired == WORKER {
-				fmt.Println("We're done here")
-				break
-			}
-		}
+		time.Sleep(3 * time.Second)
 	}
 }

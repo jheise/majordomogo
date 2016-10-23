@@ -3,21 +3,26 @@ package main
 import (
 	// standard
 	"fmt"
+	"time"
 
 	// external
-	"github.com/alecthomas/gozmq"
+	zmq "github.com/pebbe/zmq4"
+)
+
+const (
+	HEARTBEAT_INTERVAL = 2500 * time.Millisecond
 )
 
 func main() {
 	fmt.Println("Startig Broker")
 
-	context, err := gozmq.NewContext()
+	context, err := zmq.NewContext()
 	if err != nil {
 		panic(err)
 	}
-	defer context.Close()
+	defer context.Term()
 
-	broker, err := context.NewSocket(gozmq.ROUTER)
+	broker, err := context.NewSocket(zmq.ROUTER)
 	if err != nil {
 		panic(err)
 	}
@@ -25,14 +30,31 @@ func main() {
 
 	broker.Bind("tcp://*:9999")
 
+	poller := zmq.NewPoller()
+	poller.Add(broker, zmq.POLLIN)
+
 	for {
-		parts, err := broker.RecvMultipart(0)
-		if err != nil {
-			fmt.Println(err)
+
+		sockets, _ := poller.Poll(HEARTBEAT_INTERVAL)
+
+		for _, socket := range sockets {
+			switch s := socket.Socket; s {
+
+			case broker:
+				msg, err := s.RecvMultipart(0)
+				if err != nil {
+					fmt.Println(err)
+				}
+
+				sender := msg[0]
+				header := msg[2]
+				msg = msg[3:]
+
+				fmt.Println(sender)
+				fmt.Println(header)
+			}
+
 		}
 
-		identity := parts[0]
-		fmt.Println("Serving worker: " + string(identity))
-		broker.SendMultipart([][]byte{identity, []byte(""), []byte("WORK")}, 0)
 	}
 }
