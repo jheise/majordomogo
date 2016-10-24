@@ -1,0 +1,6 @@
+rc  libzmq3:amd64                                        4.0.5+dfsg-3ubuntu1~gcc5.1                     amd64        lightweight messaging kernel (shared library)
+ii  libzmq3-dev:amd64                                    4.1.5+git20160811+2fc86bc-0ubuntu2             amd64        lightweight messaging kernel (development files)
+ii  libzmq5:amd64                                        4.1.5+git20160811+2fc86bc-0ubuntu2             amd64        lightweight messaging kernel (shared library)
+ii  libzmqpp4:amd64                                      4.1.2-0ubuntu1                                 amd64        High-level C++ bindings for zeromq3
+ii  python-zmq                                           15.2.0-1ubuntu1                                amd64        Python bindings for 0MQ library
+
