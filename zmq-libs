@@ -4,3 +4,9 @@ ii  libzmq5:amd64                                        4.1.5+git20160811+2fc86
 ii  libzmqpp4:amd64                                      4.1.2-0ubuntu1                                 amd64        High-level C++ bindings for zeromq3
 ii  python-zmq                                           15.2.0-1ubuntu1                                amd64        Python bindings for 0MQ library
 
+
+ii  libzmq-dev:amd64                            2.2.0+dfsg-7                                                amd64        lightweight messaging kernel (development files)
+ii  libzmq1:amd64                               2.2.0+dfsg-7                                                amd64        lightweight messaging kernel (shared library)
+ii  libzmq5:amd64                               4.1.4-7                                                     amd64        lightweight messaging kernel (shared library)
+ii  python-zmq                                  15.2.0-0ubuntu4                                             amd64        Python bindings for 0MQ library
+

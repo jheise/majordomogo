@@ -6,17 +6,27 @@ import (
 	"time"
 
 	// external
-	"github.com/alecthomas/gozmq"
+	zmq "github.com/pebbe/zmq4"
 )
 
+func sendReady(soc *zmq.Socket) {
+	frame0 := []byte("")
+	frame1 := []byte("MDPW01")
+	frame2 := []byte("1")
+	frame3 := []byte("basic")
+	data := [][]byte{frame0, frame1, frame2, frame3}
+
+	soc.SendMessage(data, 0)
+}
+
 func main() {
-	context, err := gozmq.NewContext()
+	context, err := zmq.NewContext()
 	if err != nil {
 		panic(err)
 	}
-	defer context.Close()
+	defer context.Term()
 
-	worker, err := context.NewSocket(gozmq.DEALER)
+	worker, err := context.NewSocket(zmq.DEALER)
 	if err != nil {
 		panic(err)
 	}
@@ -25,16 +35,18 @@ func main() {
 	worker.SetIdentity(ident)
 	worker.Connect("tcp://localhost:9999")
 
+	sendReady(worker)
+
 	total := 0
 	for {
-		worker.SendMultipart([][]byte{[]byte(""), []byte("HELLO")}, 0)
+		worker.SendMessage([][]byte{[]byte(""), []byte("HELLO")}, 0)
 
-		parts, _ := worker.RecvMultipart(0)
+		parts, _ := worker.RecvMessageBytes(0)
 		workload := parts[1]
 		fmt.Println("Workload: " + string(workload))
 
 		if string(workload) == "FIRED" {
-			id, _ := worker.Identity()
+			id, _ := worker.GetIdentity()
 			fmt.Printf("Complete: %d tasks (%s)\n", total, id)
 			break
 		}

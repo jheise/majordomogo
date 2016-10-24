@@ -37,23 +37,20 @@ func main() {
 
 		sockets, _ := poller.Poll(HEARTBEAT_INTERVAL)
 
-		for _, socket := range sockets {
-			switch s := socket.Socket; s {
+		if len(sockets) > 0 {
+			s := sockets[0].Socket
 
-			case broker:
-				msg, err := s.RecvMultipart(0)
-				if err != nil {
-					fmt.Println(err)
-				}
-
-				sender := msg[0]
-				header := msg[2]
-				msg = msg[3:]
-
-				fmt.Println(sender)
-				fmt.Println(header)
+			msg, err := s.RecvMessageBytes(0)
+			if err != nil {
+				fmt.Println(err)
 			}
 
+			sender := msg[0]
+			header := msg[2]
+			//msg = msg[3:]
+
+			fmt.Println(string(sender))
+			fmt.Println(string(header))
 		}
 
 	}
