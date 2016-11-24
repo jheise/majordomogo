@@ -2,44 +2,102 @@ package main
 
 import (
 	// standard
+	"errors"
 	"fmt"
 	"time"
 
 	// external
-	"github.com/alecthomas/gozmq"
+	zmq "github.com/pebbe/zmq4"
 )
 
-func main() {
-	context, err := gozmq.NewContext()
+const (
+	HEARTBEAT_INTERVAL = 2500 * time.Millisecond
+	MDPW_WORKER        = "MDPW01"
+	MDPC_CLIENT        = "MDPC01"
+	MDPW_READY         = "\001"
+	MDPW_REQUEST       = "\002"
+	MDPW_REPLY         = "\003"
+	MDPW_HEARTBEAT     = "\004"
+	MDPW_DISCONNECT    = "\005"
+)
+
+type MDClient struct {
+	context *zmq.Context
+	socket  *zmq.Socket
+	ident   string
+}
+
+func NewMDClient(connect string) (*MDClient, error) {
+	client := new(MDClient)
+
+	context, err := zmq.NewContext()
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
-	defer context.Close()
 
-	worker, err := context.NewSocket(gozmq.DEALER)
+	socket, err := context.NewSocket(zmq.DEALER)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
-	defer worker.Close()
-	ident := fmt.Sprintf("worker%d", time.Now().Unix())
-	worker.SetIdentity(ident)
-	worker.Connect("tcp://localhost:9999")
+	ident := fmt.Sprintf("client%d", time.Now().Unix())
+	socket.SetIdentity(ident)
+	socket.Connect("tcp://localhost:9999")
 
-	total := 0
-	for {
-		worker.SendMultipart([][]byte{[]byte(""), []byte("HELLO")}, 0)
+	client.context = context
+	client.socket = socket
+	client.ident = ident
 
-		parts, _ := worker.RecvMultipart(0)
-		workload := parts[1]
-		fmt.Println("Workload: " + string(workload))
+	return client, nil
+}
 
-		if string(workload) == "FIRED" {
-			id, _ := worker.Identity()
-			fmt.Printf("Complete: %d tasks (%s)\n", total, id)
-			break
+func (client *MDClient) sendRequest(service []byte, msg []byte) {
+	frame0 := []byte("")
+	frame1 := []byte(MDPC_CLIENT)
+	frame2 := service
+	frame3 := msg
+	data := [][]byte{frame0, frame1, frame2, frame3}
+
+	client.socket.SendMessage(data, 0)
+}
+
+func (client *MDClient) MakeReq(service string, msg string) ([][]byte, error) {
+	// send message
+	client.sendRequest([]byte("basic"), []byte("HELLO"))
+	for x := 0; x < 3; x++ {
+		// wait for response
+		output, _ := client.socket.RecvMessageBytes(0)
+
+		header := output[1]
+		output = output[2:]
+
+		if string(header) != MDPC_CLIENT {
+			return nil, errors.New("Invalid header")
 		}
-		total++
 
-		time.Sleep(3 * time.Second)
+		outputService := string(output[0])
+		if outputService == service {
+
+			output = output[2:]
+			return output, nil
+		}
+
 	}
+
+	return nil, errors.New("No Message Received")
+}
+
+func main() {
+	client, err := NewMDClient("tcp://localhost:9999")
+	if err != nil {
+		panic(err)
+	}
+
+	output, err := client.MakeReq("basic", "hello")
+	if err != nil {
+		panic(err)
+	}
+	for _, part := range output {
+		fmt.Println(string(part))
+	}
+
 }
