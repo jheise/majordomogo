@@ -1,4 +1,4 @@
-package main
+package majordomogo
 
 import (
 	// standard
@@ -25,6 +25,7 @@ type MDClient struct {
 	context *zmq.Context
 	socket  *zmq.Socket
 	ident   string
+	server  string
 }
 
 func NewMDClient(connect string) (*MDClient, error) {
@@ -41,11 +42,12 @@ func NewMDClient(connect string) (*MDClient, error) {
 	}
 	ident := fmt.Sprintf("client%d", time.Now().Unix())
 	socket.SetIdentity(ident)
-	socket.Connect("tcp://localhost:9999")
+	socket.Connect(connect)
 
 	client.context = context
 	client.socket = socket
 	client.ident = ident
+	client.server = connect
 
 	return client, nil
 }
@@ -62,7 +64,7 @@ func (client *MDClient) sendRequest(service []byte, msg []byte) {
 
 func (client *MDClient) MakeReq(service string, msg string) ([][]byte, error) {
 	// send message
-	client.sendRequest([]byte("basic"), []byte("HELLO"))
+	client.sendRequest([]byte(service), []byte("HELLO"))
 	for x := 0; x < 3; x++ {
 		// wait for response
 		output, _ := client.socket.RecvMessageBytes(0)
@@ -84,20 +86,4 @@ func (client *MDClient) MakeReq(service string, msg string) ([][]byte, error) {
 	}
 
 	return nil, errors.New("No Message Received")
-}
-
-func main() {
-	client, err := NewMDClient("tcp://localhost:9999")
-	if err != nil {
-		panic(err)
-	}
-
-	output, err := client.MakeReq("basic", "hello")
-	if err != nil {
-		panic(err)
-	}
-	for _, part := range output {
-		fmt.Println(string(part))
-	}
-
 }

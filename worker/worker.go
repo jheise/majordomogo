@@ -1,4 +1,4 @@
-package main
+package majordomogo
 
 import (
 	// standard
@@ -31,8 +31,8 @@ type MDWorker struct {
 	liveness int
 }
 
-func (self *MDWorker) sendReady() error {
-	fmt.Println("sendReady called")
+func (self *MDWorker) SendReady() error {
+	fmt.Println("SendReady called")
 	frame0 := []byte("")
 	frame1 := []byte(MDPW_WORKER)
 	frame2 := []byte(MDPW_READY)
@@ -104,6 +104,10 @@ func (self *MDWorker) processMessage(msg [][]byte) {
 		self.processDisconnect()
 	}
 
+}
+
+func (self *MDWorker) GetIdent() string {
+	return self.ident
 }
 
 func NewWorker(broker string, service string) (*MDWorker, error) {
@@ -185,7 +189,7 @@ func (self *MDWorker) Work() {
 				panic(err)
 			}
 			fmt.Println("Sending Ready to server")
-			err = self.sendReady()
+			err = self.SendReady()
 			if err != nil {
 				panic(err)
 			}
@@ -195,20 +199,4 @@ func (self *MDWorker) Work() {
 		self.sendHeartbeat()
 
 	}
-}
-
-func main() {
-	fmt.Println("Creating worker")
-	worker, err := NewWorker("tcp://localhost:9999", "basic")
-	if err != nil {
-		panic(err)
-	}
-	fmt.Println("Starting worker: " + worker.ident)
-
-	err = worker.sendReady()
-	if err != nil {
-		panic(err)
-	}
-
-	worker.Work()
 }

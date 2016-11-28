@@ -1,4 +1,4 @@
-package main
+package majordomogo
 
 type WorkerManager interface {
 	Add(worker *Worker)

@@ -1,4 +1,4 @@
-package main
+package majordomogo
 
 import (
 	// standard
@@ -47,13 +47,6 @@ func (self *Broker) LookupService(sender string) (string, error) {
 	fmt.Println("Doing lookup for " + sender)
 	service, err := self.workers.GetWorkerService(sender)
 	return service, err
-	//for service, container := range self.Services {
-	//	if container.Workers.Contains(sender) {
-	//		return service, nil
-	//	}
-	//}
-
-	//return "", errors.New("Worker not registered to serivce")
 }
 
 func (self *Broker) SendClientRequest(client string, service string, msg [][]byte) {
@@ -134,7 +127,7 @@ func (self *Broker) workerReply(sender string, client string, msg [][]byte) {
 }
 
 func (self *Broker) SendHeartbeat(sender string) {
-	fmt.Printf("Heartbeat %s\n", sender)
+	//fmt.Printf("Heartbeat %s\n", sender)
 	target := []byte(sender)
 	frame0 := []byte("")
 	frame1 := []byte(MDPW_WORKER)
@@ -206,7 +199,7 @@ func (self *Broker) Run() {
 
 		// Process heartbeats
 		if self.heartbeat.Before(time.Now()) {
-			fmt.Printf("Sending Heartbeats %s\n", time.Now())
+			//fmt.Printf("Sending Heartbeats %s\n", time.Now())
 
 			self.heartbeat = time.Now().Add(HEARTBEAT_INTERVAL)
 
