@@ -24,6 +24,7 @@ const (
 type MDClient struct {
 	context *zmq.Context
 	socket  *zmq.Socket
+	poller  *zmq.Poller
 	ident   string
 	server  string
 }
@@ -44,10 +45,14 @@ func NewMDClient(connect string) (*MDClient, error) {
 	socket.SetIdentity(ident)
 	socket.Connect(connect)
 
+	poller := zmq.NewPoller()
+	poller.Add(socket, zmq.POLLIN)
+
 	client.context = context
 	client.socket = socket
 	client.ident = ident
 	client.server = connect
+	client.poller = poller
 
 	return client, nil
 }
@@ -64,23 +69,30 @@ func (client *MDClient) sendRequest(service []byte, msg []byte) {
 
 func (client *MDClient) MakeReq(service string, msg string) ([][]byte, error) {
 	// send message
-	client.sendRequest([]byte(service), []byte("HELLO"))
+	client.sendRequest([]byte(service), []byte(msg))
 	for x := 0; x < 3; x++ {
+		sockets, _ := client.poller.Poll(HEARTBEAT_INTERVAL)
 		// wait for response
-		output, _ := client.socket.RecvMessageBytes(0)
+		if len(sockets) > 0 {
+			s := sockets[0].Socket
+			output, err := s.RecvMessageBytes(0)
+			if err != nil {
+				return nil, err
+			}
 
-		header := output[1]
-		output = output[2:]
-
-		if string(header) != MDPC_CLIENT {
-			return nil, errors.New("Invalid header")
-		}
-
-		outputService := string(output[0])
-		if outputService == service {
-
+			header := output[1]
 			output = output[2:]
-			return output, nil
+
+			if string(header) != MDPC_CLIENT {
+				return nil, errors.New("Invalid header")
+			}
+
+			outputService := string(output[0])
+			if outputService == service {
+
+				output = output[2:]
+				return output, nil
+			}
 		}
 
 	}
